@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>SecureShare</title>
+<style>
+/* White canvas, navy text, royal blue buttons with gold labels. Type: Poppins SemiBold (logo, headings), Inter (body, buttons), JetBrains Mono (hashes, logs). All bundled locally. */
+@font-face{font-family:"Poppins";src:url(/fonts/poppins-latin-600-normal.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Inter";src:url(/fonts/inter-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+:root{
+  color-scheme:light;
+  --bg:#ffffff; --soft:#f6f8fc; --soft-2:#eceff7; --ink:#0e1a3a; --muted:#5b6785; --line:#e3e8f2; --line-2:#cdd5e6;
+  --royal:#1b3fb4; --royal-dark:#142f8a; --royal-soft:#e9eefb; --gold:#f6c945; --gold-deep:#8a6500; --gold-soft:#fff6d8;
+  --good:#157a4a; --good-bg:#e4f4ea; --bad:#b3261e; --bad-bg:#fdecea; --warn:#8a5a06; --warn-bg:#fff4d6;
+  --head:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 14px/1.55 var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
+.page{max-width:1180px;margin:0 auto;padding:26px 16px 56px}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--royal);color:var(--gold);border:1px solid var(--royal);border-radius:9px;padding:9px 16px;cursor:pointer;font-weight:500;letter-spacing:.005em;transition:background .15s,transform .05s}
+button:hover:not(:disabled){background:var(--royal-dark);border-color:var(--royal-dark)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.sm{padding:6px 12px;font-size:12.5px;border-radius:8px}
+button.danger{background:#fff;color:var(--bad);border-color:#e8b9b4}
+button.danger:hover:not(:disabled){background:var(--bad-bg);border-color:var(--bad)}
+button.plain{background:none;border:0;padding:0;color:var(--royal);font-weight:500}
+button.plain:hover{background:none;color:var(--royal-dark);text-decoration:underline}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--royal);outline-offset:2px}
+input,select{background:#fff;border:1px solid var(--line-2);border-radius:9px;padding:10px 12px;min-width:0;max-width:100%;width:100%;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{border-color:var(--royal);box-shadow:0 0 0 3px var(--royal-soft);outline:none}
+label{display:block;font-weight:500;font-size:13px;margin-bottom:14px}
+label>input,label>select{display:block;margin-top:6px;font-weight:400}
+h1,h2,h3{font-family:var(--head);font-weight:600;margin:0;text-wrap:balance}
+h2{font-family:var(--head);font-size:15px;font-weight:600;letter-spacing:-.005em}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono);font-size:12px}
+svg{display:block}
+
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:32px 16px}
+.lcard{width:100%;max-width:410px}
+.brandrow{display:flex;flex-direction:column;align-items:center;gap:14px}
+.logomark{width:46px;height:46px;border-radius:13px;background:var(--royal);color:var(--gold);display:grid;place-items:center;box-shadow:0 8px 22px rgba(27,63,180,.28)}
+.mark{font:600 30px/1 var(--head);letter-spacing:-.03em}
+.panel{border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 10px 40px rgba(14,26,58,.07);background:#fff;margin-top:26px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:22px;padding:4px;background:var(--soft-2);border-radius:11px}
+.seg button{background:transparent;color:var(--ink);border:0;padding:9px 4px;font-weight:500;border-radius:8px}
+.seg button:hover:not(:disabled){background:#fff}
+.seg button[aria-pressed="true"]{background:var(--royal);color:var(--gold)}
+.err{color:var(--bad);font-size:13px;min-height:20px;margin:0 0 10px}
+.srv{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--muted);margin-top:18px;justify-content:center;text-align:center}
+.srv .dot{margin-top:5px;flex:none}
+.srv.bad{color:var(--bad)}
+details{margin-top:10px;font-size:12px;color:var(--muted);text-align:center}
+summary{cursor:pointer}
+details code{display:block;font:12px var(--mono);margin-top:5px;color:var(--ink)}
+
+/* top bar */
+header.top{position:sticky;top:0;z-index:15;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:64px}
+.logo{display:flex;align-items:center;gap:11px;font:600 19px/1 var(--head);letter-spacing:-.025em}
+.logo .logomark{width:34px;height:34px;border-radius:10px;box-shadow:none}
+.pill{display:inline-block;font:500 11px var(--sans);text-transform:uppercase;letter-spacing:.08em;padding:4px 10px;border-radius:999px;background:var(--gold-soft);color:var(--gold-deep);border:1px solid #f1dc93}
+.right{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.live{display:inline-flex;gap:7px;align-items:center;font:500 12px var(--sans);color:var(--muted);padding:5px 11px;border:1px solid var(--line);border-radius:999px;background:#fff}
+.dot{width:8px;height:8px;border-radius:50%;background:#b9c2d6;display:inline-block;flex:none}
+.dot.on{background:var(--good);box-shadow:0 0 0 3px var(--good-bg)}
+.avs{display:flex;align-items:center}
+.avs .av+.av{margin-left:-8px}
+.av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:500 12px var(--sans);background:var(--royal-soft);color:var(--royal);border:2px solid #fff;position:relative;text-transform:uppercase;flex:none}
+.av.receiver{background:var(--good-bg);color:var(--good)}
+.av.admin{background:var(--gold-soft);color:var(--gold-deep)}
+.av.sm{width:24px;height:24px;font-size:10px;border-width:0}
+.av .st{position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:50%;background:var(--good);border:2px solid #fff}
+.user{display:flex;align-items:center;gap:10px}
+.user .who{line-height:1.2}
+.user .who b{display:block;font-size:13px}
+.user .who span{font-size:11px;color:var(--muted);text-transform:capitalize}
+
+/* layout */
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;min-width:0;box-shadow:0 1px 2px rgba(14,26,58,.04)}
+.card>.hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-bottom:18px;align-items:start}
+.cols.wide{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+@media(max-width:900px){.cols,.cols.wide{grid-template-columns:minmax(0,1fr)}}
+.sec{margin-bottom:18px}
+.sticky{position:sticky;top:84px}
+@media(max-width:900px){.sticky{position:static}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.stat b{display:block;font:600 28px/1.1 var(--head);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted);font-weight:500}
+.stat.bad b{color:var(--bad)}
+.count{font:500 12px var(--sans);color:var(--muted);background:var(--soft-2);border-radius:999px;padding:2px 10px}
+
+/* send form */
+.drop{position:relative;border:1.5px dashed var(--line-2);border-radius:12px;padding:28px 14px;text-align:center;color:var(--muted);cursor:pointer;margin-bottom:16px;background:var(--soft);display:grid;justify-items:center;gap:8px;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--royal);background:var(--royal-soft)}
+.drop svg{color:var(--royal)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;padding:0}
+.prev{display:flex;gap:12px;align-items:center;margin-bottom:16px;min-width:0;padding:10px;border:1px solid var(--line);border-radius:12px}
+.prev img{width:52px;height:52px;object-fit:cover;border-radius:8px}
+.prev .meta{min-width:0;overflow-wrap:anywhere;font-size:13px}
+.rline{display:flex;gap:8px;align-items:center;margin:-6px 0 16px;font-size:12px;color:var(--muted)}
+
+/* stepper (titles only) */
+ol.stepper{list-style:none;margin:0;padding:0}
+.stepper li{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr);gap:12px;padding-bottom:18px;animation:rise .3s ease both;align-items:center}
+.stepper li:last-child{padding-bottom:0}
+.stepper li:not(:last-child)::before{content:"";position:absolute;left:11px;top:26px;bottom:-2px;width:2px;background:#cfe8da}
+.stepper li.bad:not(:last-child)::before{background:#f1c9c5}
+.sdot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--good);color:#fff}
+.sdot.bad{background:var(--bad)}
+.stt{font-weight:500;font-size:14px}
+.stepper li.bad .stt{color:var(--bad)}
+@keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.stepper li,.toast,.item.flash{animation:none}}
+
+/* file list */
+.item{padding:16px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0;padding-top:2px}
+.item.flash{animation:flash 2s ease}
+@keyframes flash{0%{background:var(--gold-soft)}100%{background:transparent}}
+.top2{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:14px;align-items:center}
+@media(max-width:700px){.top2{grid-template-columns:46px minmax(0,1fr)}.top2 .side{grid-column:1 / -1;align-items:flex-start}}
+.ico{width:46px;height:46px;border-radius:11px;display:grid;place-items:center;font:500 11px var(--sans);letter-spacing:.05em}
+.ico.pdf{background:var(--bad-bg);color:var(--bad)}.ico.img{background:var(--royal-soft);color:var(--royal)}.ico.doc{background:var(--gold-soft);color:var(--gold-deep)}.ico.other{background:var(--soft-2);color:var(--muted)}
+.nm{font-weight:500;overflow-wrap:anywhere;line-height:1.3}
+.meta2{font-size:12.5px;color:var(--muted);display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;margin-top:3px}
+.meta2 .sep{width:3px;height:3px;border-radius:50%;background:var(--line-2)}
+.meta2 b{color:var(--ink);font-weight:500}
+.side{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.track{display:flex;gap:5px;align-items:center;font:500 11px var(--sans);flex-wrap:wrap}
+.track span{padding:3px 10px;border-radius:999px;background:var(--soft-2);color:var(--muted)}
+.track span.done{background:var(--good-bg);color:var(--good)}
+.track span.fail{background:var(--bad-bg);color:var(--bad)}
+.track i{width:8px;height:1.5px;background:var(--line-2);display:inline-block}
+.act{display:flex;gap:8px;flex-wrap:wrap}
+.under{margin:12px 0 0 60px;display:grid;gap:10px}
+@media(max-width:700px){.under{margin-left:0}}
+.paths{font:12px/1.65 var(--mono);color:var(--muted);overflow-wrap:anywhere}
+.paths b{font-family:var(--sans);color:var(--ink);font-weight:500}
+.pv{max-width:100%;max-height:380px;border-radius:12px;border:1px solid var(--line);justify-self:start}
+iframe.pdf{width:100%;height:520px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+pre.txt{font:12.5px/1.6 var(--mono);background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
+.note{font-size:13px;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.badge{display:inline-block;font:500 11px var(--sans);padding:3px 10px;border-radius:999px;background:var(--soft-2);color:var(--muted)}
+.badge.good{background:var(--good-bg);color:var(--good)}.badge.bad{background:var(--bad-bg);color:var(--bad)}
+.empty{display:grid;justify-items:center;gap:10px;padding:34px 12px;color:var(--muted);text-align:center}
+.empty svg{color:var(--line-2)}
+
+/* admin */
+.cipher{display:grid;grid-template-columns:112px minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:560px){.cipher{grid-template-columns:minmax(0,1fr)}}
+canvas.noise{width:112px;height:auto;image-rendering:pixelated;border-radius:10px;border:1px solid var(--line);background:var(--soft)}
+.hex{font:11px/1.55 var(--mono);color:var(--muted);overflow-wrap:anywhere}
+.stepper li.hasv{align-items:start}
+.stepper li.hasv .stt{display:block;line-height:24px}
+.kv{display:grid;gap:6px;margin-top:6px}
+.kv .row{border:1px solid var(--line);background:var(--soft);border-radius:8px;padding:7px 10px;min-width:0}
+.kv .row.secret{border-color:#e8cf86;background:var(--gold-soft)}
+.kv .k{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);font-weight:500}
+.kv code{display:block;font:11px/1.5 var(--mono);color:var(--ink);overflow-wrap:anywhere;word-break:break-all;max-height:3.1em;overflow:hidden;cursor:pointer}
+.kv code.open{max-height:none}
+button.cp{padding:1px 8px;font-size:11px;border-radius:6px;background:transparent;color:var(--royal);border:1px solid var(--line-2);flex:none}
+button.cp:hover:not(:disabled){background:var(--royal-soft);border-color:var(--line-2)}
+.pkp{margin:12px 0 0 60px}
+@media(max-width:700px){.pkp{margin-left:0}}
+.pkp .kv{margin-top:10px}
+.lock{display:inline-flex;align-items:center;gap:6px;font:500 11px var(--sans);padding:4px 10px;border-radius:999px;background:var(--bad-bg);color:var(--bad);justify-self:start}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+th{font:500 11px var(--sans);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+tr.bad td{background:var(--bad-bg)}
+.feed{display:grid;gap:10px;max-height:420px;overflow:auto}
+.ev{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;font-size:12.5px}
+.ev time{font:11px var(--mono);color:var(--muted);white-space:nowrap;padding-top:1px}
+.ev .e{font:400 10.5px var(--mono);margin-right:6px;letter-spacing:.02em}
+.ev .e.bad{color:var(--bad)}.ev .e.warn{color:var(--warn)}.ev .e.good{color:var(--good)}
+
+#toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:30;max-width:min(380px,calc(100vw - 32px))}
+.toast{background:var(--royal);color:var(--gold);padding:12px 16px;border-radius:12px;font-size:13px;font-weight:500;animation:rise .2s ease both;box-shadow:0 10px 30px rgba(14,26,58,.25)}
+.toast.bad{background:var(--bad);color:#fff}.toast.good{background:var(--good);color:#fff}
+
+b,strong{font-weight:500}
+h1,h2,h3,.logo,.mark{font-family:var(--head);font-weight:600}
+.where{max-width:1180px;margin:0 auto;padding:0 16px 28px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.where .mono{color:var(--ink)}
+</style>
+</head>
+<body>
+<div id="toasts" aria-live="polite"></div>
+<div id="root"></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtSize=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB';
+const fmtT=ts=>ts?new Date(ts*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}):'';
+const fmtDur=s=>s<1?Math.max(1,Math.round(s*1000))+' ms':s<60?s.toFixed(1)+' s':s<3600?Math.round(s/60)+' min':(s/3600).toFixed(1)+' h';
+const IMG=new Set(['image/png','image/jpeg','image/gif','image/webp']);
+const SVG={
+  lock:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  lockSm:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  upload:'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>',
+  file:'<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+  check:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+  cross:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v7"/><path d="M12 18h.01"/></svg>'
+};
+
+let cfg={public:false,banner:''}, me=null, files=[], recvs=[], online=[], feed=[], es=null, flashId=null, loginRole='sender', regMode=false, lastSig='';
+const decCache={}, cipherCache={}, collapsed=new Set();
+
+const NET_MSG='Cannot reach the SecureShare server. Make sure server.py is running, and open the address shown in its window (for example http://127.0.0.1:5050), not the HTML file itself.';
+let TAB;try{TAB=sessionStorage.getItem('ss_tab');if(!TAB){TAB=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('ss_tab',TAB)}}catch(e){TAB=Math.random().toString(36).slice(2)}
+const tq=u=>u+(u.includes('?')?'&':'?')+'t='+TAB;
+async function api(path,opts={}){
+  let r;
+  try{r=await fetch(path,{credentials:'same-origin',...opts,headers:{...(opts.headers||{}),'X-Tab':TAB}})}
+  catch(e){throw new Error(location.protocol==='file:'?'This page was opened as a file. Start server.py and open http://127.0.0.1:5050 in your browser instead.':NET_MSG)}
+  let j=null;try{j=await r.json()}catch(e){}
+  if(r.status===401&&me){me=null;closeLive();showLogin();toast('Your session ended. Please log in again.','bad')}
+  if(!r.ok)throw new Error((j&&j.error)||('Request failed ('+r.status+')'));
+  return j;
+}
+function toast(msg,kind=''){
+  const t=document.createElement('div');t.className='toast '+kind;t.textContent=msg;$('#toasts').appendChild(t);
+  setTimeout(()=>t.remove(),5200);
+}
+const initial=n=>esc((n||'?').trim().charAt(0));
+const av=(name,role,cls='')=>`<span class="av ${role||''} ${cls}" title="${esc(name)}${role?' ('+esc(role)+')':''}">${initial(name)}</span>`;
+
+/* ================= LOGIN ================= */
+const ROLES=[['sender','Sender'],['admin','Admin'],['receiver','Receiver']];
+const roleName=r=>ROLES.find(x=>x[0]===r)[1];
+function showLogin(){
+  const label=regMode?'Create account':'Log in';
+  $('#root').innerHTML=`<div class="login"><div class="lcard">
+    <div class="brandrow"><div class="logomark">${SVG.lock}</div><div class="mark">SecureShare</div></div>
+    <div class="panel">
+      <div class="seg" role="group" aria-label="Log in as">${ROLES.map(([r,n])=>`<button type="button" data-role="${r}" aria-pressed="${r===loginRole}">${n}</button>`).join('')}</div>
+      <form id="authForm" autocomplete="off">
+        <label>Username<input id="u" required autofocus></label>
+        <label>Password<input id="p" type="password" required ${regMode?'minlength="8"':''}></label>
+        <p class="err" id="err" role="alert"></p>
+        <button id="go" type="submit" style="width:100%;padding:12px">${label}</button>
+      </form>
+      ${loginRole==='admin'?'':`<p style="text-align:center;margin:18px 0 0;font-size:13px"><button class="plain" id="toggleReg" type="button">${regMode?'Back to log in':'Create a '+loginRole+' account'}</button></p>`}
+    </div>
+    <div class="srv" id="srv"><i class="dot"></i><span>Checking server…</span></div>
+    ${cfg.public?`<p class="note" style="margin:14px 0 0">${esc(cfg.banner)}</p>`:'<details><summary>Demo accounts</summary><code>sender1 / sender12345</code><code>receiver1 / receiver12345</code><code>admin / admin12345</code></details>'}
+  </div></div>`;
+  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{loginRole=b.dataset.role;if(loginRole==='admin')regMode=false;showLogin()});
+  const t=$('#toggleReg');if(t)t.onclick=()=>{regMode=!regMode;showLogin()};
+  checkServer();
+  $('#authForm').onsubmit=async e=>{
+    e.preventDefault();
+    const go=$('#go'),err=$('#err');err.textContent='';go.disabled=true;
+    const body=JSON.stringify({username:$('#u').value,password:$('#p').value,role:loginRole});
+    const h={'Content-Type':'application/json'};
+    try{
+      if(regMode){go.textContent='Generating keys…';await api('/api/register',{method:'POST',headers:h,body})}
+      go.textContent='Signing in…';
+      me=await api('/api/login',{method:'POST',headers:h,body});
+      startApp();
+    }catch(ex){err.textContent=ex.message;go.disabled=false;go.textContent=label;checkServer()}
+  };
+}
+async function checkServer(){
+  const el=$('#srv');if(!el)return;
+  try{
+    const r=await fetch('/api/health',{cache:'no-store'});
+    if(!r.ok)throw 0;
+    el.className='srv';el.innerHTML='<i class="dot on"></i><span>Server connected</span>';
+  }catch(e){
+    el.className='srv bad';
+    el.innerHTML='<i class="dot"></i><span>'+esc(location.protocol==='file:'?'This page was opened as a file, so there is no server behind it. Start server.py and open http://127.0.0.1:5050 in your browser.':NET_MSG)+'</span>';
+  }
+}
+
+/* ================= SHELL ================= */
+function startApp(){
+  files=[];feed=[];online=[];lastSig='';collapsed.clear();pkgOpen.clear();Object.keys(pkgCache).forEach(k=>delete pkgCache[k]);Object.keys(decCache).forEach(k=>delete decCache[k]);
+  $('#root').innerHTML=`
+    <header class="top"><div class="bar">
+      <div class="logo"><div class="logomark">${SVG.lockSm.replace('width="12" height="12"','width="18" height="18"')}</div>SecureShare<span class="pill">${esc(roleName(me.role))}</span></div>
+      <div class="right">
+        <div class="avs" id="presence" aria-label="Users online"></div>
+        <span class="live"><i class="dot" id="liveDot"></i><span id="liveTxt">Connecting</span></span>
+        <div class="user">${av(me.user,me.role)}<div class="who"><b>${esc(me.user)}</b><span>${esc(me.role)}</span></div></div>
+        <button class="sm" id="logout">Log out</button>
+      </div>
+    </div></header>
+    <div class="page" id="main"></div>
+    <p class="where">${cfg.public?esc(cfg.banner):`Everything is saved on the server computer in: <span class="mono">${esc(me.data_dir||'data/')}</span> (encrypted/, decrypted/, packages/, keys/, logs/)`}</p>`;
+  $('#logout').onclick=async()=>{try{await api('/api/logout',{method:'POST'})}catch(e){}me=null;closeLive();showLogin()};
+  ({sender:mountSender,receiver:mountReceiver,admin:mountAdmin})[me.role]();
+  openLive();loadFiles();loadAudit();
+}
+function renderPresence(){
+  const el=$('#presence');if(!el)return;
+  el.innerHTML=online.map(p=>`<span class="av ${p.role}" title="${esc(p.user)} (${esc(p.role)}) is online">${initial(p.user)}<i class="st"></i></span>`).join('');
+  if(me.role==='sender')renderRecvSelect();
+  if(me.role==='admin')renderStats();
+}
+function setLive(on){const d=$('#liveDot');if(d){d.classList.toggle('on',on);$('#liveTxt').textContent=on?'Live':'Reconnecting…'}}
+function openLive(){
+  closeLive();
+  es=new EventSource(tq('/api/events'));
+  es.onopen=()=>setLive(true);
+  es.onerror=()=>setLive(false);
+  es.addEventListener('presence',e=>{online=JSON.parse(e.data);renderPresence()});
+  es.addEventListener('audit',e=>{feed.unshift(JSON.parse(e.data));feed=feed.slice(0,80);renderFeed()});
+  es.addEventListener('file',e=>onFile(JSON.parse(e.data)));
+}
+function closeLive(){if(es){es.close();es=null}}
+
+function onFile(ev){
+  flashId=ev.id;
+  const k=ev.kind;
+  const msg={
+    receiver:{arrived:`New encrypted file from ${ev.sender}: ${ev.name}`,tampered:`${ev.name} was modified on the server`},
+    sender:{delivered:`${ev.receiver} received ${ev.name}`,decrypted:`${ev.receiver} decrypted ${ev.name}`,rejected:`${ev.receiver} rejected ${ev.name}: signature failed`,tampered:`${ev.name} was modified on the server after you sent it`},
+    admin:{arrived:`Encrypted package arrived: ${ev.name} (${ev.sender} to ${ev.receiver})`,delivered:`${ev.name} delivered to ${ev.receiver}`,decrypted:`${ev.receiver} decrypted ${ev.name}`,rejected:`${ev.receiver} rejected ${ev.name}`,tampered:`Ciphertext of ${ev.name} was tampered with`}
+  }[me.role][k];
+  if(msg)toast(msg,(k==='rejected'||k==='tampered')?'bad':k==='decrypted'?'good':'');
+  if(k==='tampered')tam.add(ev.id);
+  delete cipherCache[ev.id];delete pkgCache[ev.id];if(pkgOpen.has(ev.id))paintPkg(ev.id);
+  loadFiles();
+}
+async function loadFiles(){try{files=await api('/api/files');renderFiles()}catch(e){}}
+async function loadAudit(){try{feed=await api('/api/audit');renderFeed()}catch(e){}}
+
+const BADEV=['INVALID_SIGNATURE','DECRYPTION_FAILED','UNAUTHORIZED_ATTEMPT','LOGIN_FAILED'];
+function eventClass(e){return BADEV.includes(e)?'bad':e==='DEMO_TAMPER'?'warn':['FILE_DECRYPTED','SIGNATURE_VERIFIED'].includes(e)?'good':''}
+function renderFeed(){
+  const el=$('#feed');
+  if(el)el.innerHTML=feed.length?feed.slice(0,40).map(e=>`<div class="ev"><time>${fmtT(e.ts)}</time><div><span class="e ${eventClass(e.event)}">${esc(e.event)}</span>${esc(e.actor)}${e.detail?': '+esc(e.detail):''}</div></div>`).join(''):'<p class="muted" style="margin:0">No activity yet.</p>';
+  if($('#auditBody'))renderAuditTable();
+  if(me&&me.role==='admin')renderStats();
+}
+/* labelled values (keys, hashes, signature) shown under each step; click a value to expand it */
+function kvHTML(v){
+  if(!v||!v.length)return '';
+  return `<div class="kv">${v.map(x=>`<div class="row${/secret/.test(x.k)?' secret':''}"><div class="k"><span>${esc(x.k)}${x.v.length>130?' · click value to show all':''}</span><button type="button" class="cp" data-copy="${esc(x.v)}">Copy</button></div><code>${esc(x.v)}</code></div>`).join('')}</div>`;
+}
+function stepsHTML(steps){
+  return `<ol class="stepper">${steps.map((s,i)=>`<li class="${s.ok===false?'bad':''}${s.vals&&s.vals.length?' hasv':''}" style="animation-delay:${i*110}ms"><span class="sdot ${s.ok===false?'bad':''}">${s.ok===false?SVG.cross:SVG.check}</span><div style="min-width:0"><span class="stt">${esc(s.title)}</span>${kvHTML(s.vals)}</div></li>`).join('')}</ol>`;
+}
+/* "Show crypto details" panel under every transfer (public package values only; the AES key is never stored) */
+const pkgOpen=new Set(), pkgCache={};
+async function paintPkg(id){
+  const box=document.getElementById('pkb'+id),btn=document.querySelector(`button[data-act="pkg"][data-id="${id}"]`);
+  if(!box)return;
+  if(!pkgOpen.has(id)){box.innerHTML='';if(btn)btn.textContent='Show crypto details';return}
+  if(btn)btn.textContent='Hide crypto details';
+  let r=pkgCache[id];
+  if(!r){
+    box.innerHTML='<p class="muted" style="margin:10px 0 0">Loading…</p>';
+    try{r=await api('/api/files/'+id+'/package');pkgCache[id]=r}catch(e){box.innerHTML=`<p class="err">${esc(e.message)}</p>`;return}
+  }
+  box.innerHTML=`<div style="margin-top:10px"><span class="badge ${r.intact?'good':'bad'}">${r.intact?'Package intact: hash and signature check out':'Package modified: the hash no longer matches the signed one'}</span></div>`+kvHTML(r.items);
+}
+function togglePkg(id){pkgOpen.has(id)?pkgOpen.delete(id):pkgOpen.add(id);paintPkg(id)}
+function tracker(f){
+  const rej=f.status==='rejected';
+  const d=ts=>ts?` +${fmtDur(ts-f.created_at)}`:'';
+  const dn=f.delivered_at!=null, dc=f.status==='decrypted';
+  return `<div class="track"><span class="done">Encrypted</span><i></i>`+
+    `<span class="${dn?'done':''}">Delivered${dn?d(f.delivered_at):''}</span><i></i>`+
+    (rej?`<span class="fail">Rejected</span>`:`<span class="${dc?'done':''}">Decrypted${dc?d(f.decrypted_at):''}</span>`)+`</div>`;
+}
+function icon(f){
+  const ext=(f.name.includes('.')?f.name.split('.').pop():'file').slice(0,4);
+  const k=f.mime==='application/pdf'?'pdf':IMG.has(f.mime)?'img':(f.mime.startsWith('text/')||/word|document|sheet|presentation/.test(f.mime))?'doc':'other';
+  return `<div class="ico ${k}">${esc(ext.toUpperCase())}</div>`;
+}
+const empty=t=>`<div class="empty">${SVG.file}<div>${t}</div></div>`;
+
+/* ================= SENDER ================= */
+function mountSender(){
+  $('#main').innerHTML=`
+  <div class="cols">
+    <section class="card"><div class="hd"><h2>Send a file</h2></div>
+      <div class="drop" id="drop"><input type="file" id="fileIn" aria-label="Choose a file">${SVG.upload}<div id="dropTxt">Drop a file here, or click to choose</div></div>
+      <div id="prev"></div>
+      <label>Receiver<select id="toSel"></select></label>
+      <div class="rline" id="toState"></div>
+      <button id="sendBtn" disabled style="width:100%;padding:12px">Encrypt and send</button>
+    </section>
+    <section class="card"><div class="hd"><h2>Encryption</h2></div><div id="steps">${empty('Steps appear here after you send a file.')}</div></section>
+  </div>
+  <section class="card sec"><div class="hd"><h2>Transfers</h2><span class="count" id="cnt">0</span></div><div id="list"></div></section>
+  <section class="card"><div class="hd"><h2>Activity</h2></div><div class="feed" id="feed"></div></section>`;
+  const fin=$('#fileIn'),drop=$('#drop');
+  ['dragenter','dragover'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.add('over')}));
+  ['dragleave','drop'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.remove('over')}));
+  drop.addEventListener('drop',e=>{if(e.dataTransfer.files[0]){fin.files=e.dataTransfer.files;onPick()}});
+  fin.onchange=onPick;$('#toSel').onchange=updSend;$('#sendBtn').onclick=doSend;
+  loadReceivers();
+}
+async function loadReceivers(){try{recvs=await api('/api/receivers');renderRecvSelect()}catch(e){}}
+function renderRecvSelect(){
+  const sel=$('#toSel');if(!sel)return;
+  const cur=sel.value,on=new Set(online.filter(p=>p.role==='receiver').map(p=>p.user));
+  sel.innerHTML=`<option value="">Select a receiver</option>`+recvs.map(r=>`<option value="${esc(r.user)}">${esc(r.user)}${on.has(r.user)?' (online)':' (offline)'}</option>`).join('');
+  sel.value=cur;updSend();
+}
+function onPick(){
+  const f=$('#fileIn').files[0],p=$('#prev');
+  if(!f){p.innerHTML='';$('#dropTxt').textContent='Drop a file here, or click to choose';updSend();return}
+  $('#dropTxt').textContent='Choose a different file';
+  p.innerHTML=`<div class="prev">${f.type.startsWith('image/')?`<img alt="Preview of ${esc(f.name)}" src="${URL.createObjectURL(f)}">`:icon({name:f.name,mime:f.type||''})}<div class="meta"><b>${esc(f.name)}</b><div class="muted">${fmtSize(f.size)}</div></div></div>`;
+  updSend();
+}
+function updSend(){
+  const f=$('#fileIn')&&$('#fileIn').files[0],to=$('#toSel')&&$('#toSel').value;
+  const b=$('#sendBtn');if(b)b.disabled=!(f&&to);
+  const on=online.some(p=>p.role==='receiver'&&p.user===to);
+  const s=$('#toState');if(s)s.innerHTML=to?`<i class="dot ${on?'on':''}"></i>${esc(to)} is ${on?'online':'offline'}`:'';
+}
+async function doSend(){
+  const f=$('#fileIn').files[0],to=$('#toSel').value;if(!f||!to)return;
+  if(f.size>50*1024*1024){toast('That file is over 50 MB.','bad');return}
+  const b=$('#sendBtn');b.disabled=true;b.textContent='Encrypting…';
+  $('#steps').innerHTML='<p class="muted" style="margin:0">Encrypting…</p>';
+  const fd=new FormData();fd.append('file',f);fd.append('receiver',to);
+  try{
+    const r=await api('/api/files',{method:'POST',body:fd});
+    $('#steps').innerHTML=stepsHTML(r.steps);
+    flashId=r.id;toast(`Sent to ${to}`,'good');
+    $('#fileIn').value='';onPick();
+  }catch(e){$('#steps').innerHTML=`<p class="err">${esc(e.message)}</p>`;toast(e.message,'bad')}
+  b.textContent='Encrypt and send';updSend();loadFiles();
+}
+
+/* ================= RECEIVER ================= */
+function mountReceiver(){
+  $('#main').innerHTML=`
+  <div class="cols wide">
+    <section class="card"><div class="hd"><h2>Inbox</h2><span class="count" id="cnt">0</span></div><div id="list"></div></section>
+    <section class="card sticky"><div class="hd"><h2>Verification</h2></div><div id="steps">${empty('Steps appear here when you open a file.')}</div></section>
+  </div>
+  <section class="card"><div class="hd"><h2>Activity</h2></div><div class="feed" id="feed"></div></section>`;
+}
+async function doDecrypt(id,btn){
+  btn.disabled=true;btn.textContent='Working…';
+  $('#steps').innerHTML='<p class="muted" style="margin:0">Verifying signature…</p>';
+  try{
+    const r=await api('/api/files/'+id+'/decrypt',{method:'POST'});
+    $('#steps').innerHTML=stepsHTML(r.steps)+(r.ok?'':`<p class="err" style="margin:14px 0 0">${esc(r.error)}</p>`);
+    toast(r.ok?'File decrypted and saved':r.error,r.ok?'good':'bad');flashId=id;collapsed.delete(id);
+  }catch(e){toast(e.message,'bad')}
+  loadFiles();
+}
+async function doVerify(id){
+  try{const r=await api('/api/files/'+id+'/verify',{method:'POST'});toast(r.ok?'Signature valid. The package is authentic and unmodified.':'Signature invalid. The package was modified.',r.ok?'good':'bad');loadFiles()}catch(e){toast(e.message,'bad')}
+}
+
+/* ================= ADMIN ================= */
+function mountAdmin(){
+  $('#main').innerHTML=`
+  <div class="stats" id="stats"></div>
+  <div class="cols wide">
+    <section class="card"><div class="hd"><h2>Encrypted packages</h2><span class="count" id="cnt">0</span></div><div id="list"></div></section>
+    <section class="card sticky"><div class="hd"><h2>Live activity</h2></div><div class="feed" id="feed"></div></section>
+  </div>
+  <section class="card"><div class="hd"><h2>Audit log</h2></div><div class="tw"><table><thead><tr><th>Time</th><th>Actor</th><th>Event</th><th>Detail</th></tr></thead><tbody id="auditBody"></tbody></table></div></section>`;
+}
+function renderStats(){
+  const el=$('#stats');if(!el)return;
+  const bad=feed.filter(e=>['INVALID_SIGNATURE','DECRYPTION_FAILED'].includes(e.event)).length;
+  const un=feed.filter(e=>e.event==='UNAUTHORIZED_ATTEMPT').length;
+  const st=[['Encrypted packages',files.length],['Ciphertext stored',fmtSize(files.reduce((s,f)=>s+f.cipher_size,0))],['Users online',online.length],['Integrity failures',bad,1],['Blocked attempts',un,1]];
+  el.innerHTML=st.map(([l,n,b])=>`<div class="stat ${b&&n?'bad':''}"><b>${n}</b><span>${l}</span></div>`).join('');
+}
+function renderAuditTable(){
+  const el=$('#auditBody');if(!el)return;
+  el.innerHTML=feed.slice(0,60).map(e=>`<tr class="${eventClass(e.event)==='bad'?'bad':''}"><td class="mono">${fmtT(e.ts)}</td><td>${esc(e.actor)}</td><td class="mono">${esc(e.event)}</td><td>${esc(e.detail)}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No events yet.</td></tr>';
+}
+async function drawCipher(f){
+  const cv=document.getElementById('cv'+f.id),hx=document.getElementById('hx'+f.id);if(!cv)return;
+  let buf=cipherCache[f.id];
+  if(!buf){try{const r=await fetch(tq('/api/files/'+f.id+'/encrypted'),{credentials:'same-origin'});buf=new Uint8Array(await r.arrayBuffer());cipherCache[f.id]=buf}catch(e){return}}
+  const W=128,n=Math.min(buf.length,W*128),H=Math.max(1,Math.ceil(n/W));
+  cv.width=W;cv.height=H;const ctx=cv.getContext('2d'),img=ctx.createImageData(W,H);
+  for(let i=0;i<W*H;i++){const v=i<n?buf[i]:255;img.data[i*4]=v;img.data[i*4+1]=v;img.data[i*4+2]=v;img.data[i*4+3]=255}
+  ctx.putImageData(img,0,0);
+  if(hx)hx.textContent=[...buf.slice(0,48)].map(b=>b.toString(16).padStart(2,'0')).join(' ')+(buf.length>48?' …':'');
+}
+async function tryPlain(id){try{await api('/api/files/'+id+'/decrypted')}catch(e){toast('Denied: '+e.message,'bad');loadAudit()}}
+const tam=new Set();
+async function doTamper(id){try{await api('/api/files/'+id+'/tamper',{method:'POST'});tam.add(id);toast('One bit of the encrypted file was flipped on disk. The receiver\'s signature check will now fail.','bad');loadFiles()}catch(e){toast(e.message,'bad')}}
+
+/* ================= FILE LISTS ================= */
+function renderFiles(){
+  if(!me)return;
+  if(me.role==='admin')renderStats();
+  const el=$('#list');if(!el)return;
+  const c=$('#cnt');if(c)c.textContent=files.length;
+  const sig=JSON.stringify(files)+[...collapsed].join(',')+flashId;
+  if(sig===lastSig)return;
+  lastSig=sig;
+  if(!files.length){el.innerHTML=empty(me.role==='sender'?'No transfers yet.':me.role==='receiver'?'No files received yet.':'No packages yet.');return}
+  el.innerHTML=files.map(fileRow).join('');
+  files.forEach(f=>{
+    if(me.role==='admin')drawCipher(f);
+  });
+  pkgOpen.forEach(id=>paintPkg(id));
+  if(flashId)setTimeout(()=>{flashId=null},2100);
+}
+function fileRow(f){
+  return fileRow0(f).replace(/<\/div>\s*$/,`<div class="pkp"><button class="sm" data-act="pkg" data-id="${f.id}">Show crypto details</button><div id="pkb${f.id}"></div></div></div>`);
+}
+function fileRow0(f){
+  const fl=f.id===flashId?' flash':'';
+  const sep='<i class="sep"></i>';
+  if(me.role==='sender'){
+    return `<div class="item${fl}"><div class="top2">${icon(f)}
+      <div><div class="nm">${esc(f.name)}</div><div class="meta2"><span>To <b>${esc(f.receiver)}</b></span>${sep}<span>${fmtSize(f.size)}</span>${sep}<span>${fmtT(f.created_at)}</span></div></div>
+      <div class="side">${tracker(f)}<div class="act"><button class="sm" data-act="verify" data-id="${f.id}">Verify signature</button></div></div></div>
+      <div class="under"><div class="paths"><b>Saved:</b> ${esc(f.encrypted_path)}</div></div></div>`;
+  }
+  if(me.role==='receiver'){
+    const done=f.status==='decrypted';
+    let acts='',under='';
+    if(done){
+      acts=`<button class="sm" data-act="verify" data-id="${f.id}">Verify signature</button>`;
+      const match=f.recovered_sha256===f.plain_sha256;
+      under=`<div class="under"><div class="paths"><b>Saved:</b> ${esc(f.decrypted_path)} <span class="badge ${match?'good':'bad'}">${match?'Matches sender original':'Does not match'}</span></div></div>`;
+    }else if(f.status==='rejected'){
+      acts=`<button class="sm" data-act="decrypt" data-id="${f.id}">Try again</button>`;
+      under=`<div class="under"><div class="note" style="color:var(--bad);background:var(--bad-bg);border-color:#f1c9c5">Signature check failed. This file was not decrypted and should not be trusted.</div></div>`;
+    }else{
+      acts=`<button class="sm" data-act="verify" data-id="${f.id}">Verify signature</button><button class="sm" data-act="decrypt" data-id="${f.id}">Verify and decrypt</button>`;
+    }
+    return `<div class="item${fl}"><div class="top2">${icon(f)}
+      <div><div class="nm">${esc(f.name)}</div><div class="meta2"><span>From <b>${esc(f.sender)}</b></span>${sep}<span>${fmtSize(f.size)}</span>${sep}<span>${fmtT(f.created_at)}</span></div></div>
+      <div class="side">${tracker(f)}<div class="act">${acts}</div></div></div>${under}</div>`;
+  }
+  return `<div class="item${fl}"><div class="top2">${icon(f)}
+    <div><div class="nm">${esc(f.name)}</div><div class="meta2"><span><b>${esc(f.sender)}</b> to <b>${esc(f.receiver)}</b></span>${sep}<span>${fmtSize(f.size)}</span>${sep}<span>${fmtT(f.created_at)}</span></div></div>
+    <div class="side">${tracker(f)}</div></div>
+    <div class="under"><div class="cipher"><canvas class="noise" id="cv${f.id}" width="128" height="128" aria-label="Encrypted bytes drawn as grey pixels"></canvas>
+    <div style="min-width:0;display:grid;gap:8px"><span class="lock">${SVG.lockSm} Locked: admin holds no key</span>${tam.has(f.id)?'<span class="lock" style="margin-left:6px">Modified on disk</span>':''}
+      <div class="hex" id="hx${f.id}">Loading…</div>
+      <div class="paths"><b>Saved:</b> ${esc(f.encrypted_path)} (${fmtSize(f.cipher_size)})</div>
+      <div class="act"><button class="sm" data-act="plain" data-id="${f.id}">Try to read plaintext</button><button class="sm danger" data-act="tamper" data-id="${f.id}">Simulate tampering</button></div>
+    </div></div></div></div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act]');if(!b)return;
+  const id=+b.dataset.id,a=b.dataset.act;
+  if(a==='pkg')togglePkg(id);else if(a==='decrypt')doDecrypt(id,b);else if(a==='verify')doVerify(id);else if(a==='plain')tryPlain(id);else if(a==='tamper')doTamper(id);
+});
+
+document.addEventListener('click',e=>{
+  const c=e.target.closest('.kv code');if(c){c.classList.toggle('open');return}
+  const b=e.target.closest('button.cp');if(!b)return;
+  const t=b.dataset.copy;
+  const done=()=>{b.textContent='Copied';setTimeout(()=>{b.textContent='Copy'},1200)};
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(done,()=>{});
+  else{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(_){}ta.remove()}
+});
+
+/* ================= BOOT ================= */
+(async()=>{
+  try{const h=await fetch('/api/health',{cache:'no-store'});if(h.ok)cfg=Object.assign(cfg,await h.json())}catch(e){}
+  try{const r=await fetch(tq('/api/me'),{credentials:'same-origin'});const j=await r.json();if(j.user){me=j;startApp();return}}catch(e){}
+  showLogin();
+})();
+</script>
+</body>
+</html>
