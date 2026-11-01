@@ -147,12 +147,12 @@ ol.stepper{list-style:none;margin:0;padding:0}
 .act{display:flex;gap:8px;flex-wrap:wrap}
 .under{margin:12px 0 0 60px;display:grid;gap:10px}
 @media(max-width:700px){.under{margin-left:0}}
-.pv{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
-.pv-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.pv-hd h3{margin:0;font-size:15px}
-.pv-img{max-width:100%;max-height:480px;display:block;border-radius:10px;border:1px solid var(--line)}
-.pv-pdf{width:100%;height:520px;border:1px solid var(--line);border-radius:10px}
-.pv-text{margin:0;max-height:420px;overflow:auto;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.dv{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.dv-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.dv-hd h3{margin:0;font-size:15px}
+.dv-img{max-width:100%;max-height:480px;display:block;border-radius:10px;border:1px solid var(--line)}
+.dv-pdf{width:100%;height:520px;border:1px solid var(--line);border-radius:10px}
+.dv-text{margin:0;max-height:420px;overflow:auto;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
 .paths{font:12px/1.65 var(--mono);color:var(--muted);overflow-wrap:anywhere}
 .paths b{font-family:var(--sans);color:var(--ink);font-weight:500}
 .pv{max-width:100%;max-height:380px;border-radius:12px;border:1px solid var(--line);justify-self:start}
@@ -467,26 +467,26 @@ async function showPlain(id){
   const card=$('#viewerCard');card.hidden=false;
   setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),50);
   const mime=f.mime||'',url=tq('/api/files/'+id+'/decrypted?inline=1');
-  const head=`<div class="pv-hd"><span class="badge good">${esc(f.name)}</span></div>`;
+  const head=`<div class="dv-hd"><span class="badge good">${esc(f.name)}</span></div>`;
   const TEXT=mime.startsWith('text/')||['application/json','application/xml','application/javascript','application/x-yaml','application/csv'].includes(mime);
-  v.innerHTML=`<div class="pv">${head}<div class="pv-body muted">Loading…</div></div>`;
-  const body=v.querySelector('.pv-body');
+  v.innerHTML=`<div class="dv">${head}<div class="dv-body muted">Loading…</div></div>`;
+  const body=v.querySelector('.dv-body');
   try{
     if(mime.startsWith('image/')){
-      body.className='pv-body';body.innerHTML=`<img class="pv-img" src="${url}" alt="${esc(f.name)}">`;
+      body.className='dv-body';body.innerHTML=`<img class="dv-img" src="${url}" alt="${esc(f.name)}">`;
     }else if(mime==='application/pdf'){
-      body.className='pv-body';body.innerHTML=`<iframe class="pv-pdf" src="${url}" title="${esc(f.name)}"></iframe>`;
+      body.className='dv-body';body.innerHTML=`<iframe class="dv-pdf" src="${url}" title="${esc(f.name)}"></iframe>`;
     }else if(TEXT){
       const r=await fetch(url,{credentials:'same-origin',headers:{'X-Tab':TAB}});
       if(!r.ok)throw new Error('Could not load the decrypted file');
       const t=await r.text();
-      body.className='pv-body';body.innerHTML=`<pre class="pv-text">${esc(t.length>200000?t.slice(0,200000)+'\n… (truncated)':t)}</pre>`;
+      body.className='dv-body';body.innerHTML=`<pre class="dv-text">${esc(t.length>200000?t.slice(0,200000)+'\n… (truncated)':t)}</pre>`;
     }else{
       const j=await api('/api/files/'+id+'/decrypted?hex=1');
-      body.className='pv-body';
-      body.innerHTML=`<p class="muted" style="margin:0 0 8px">This file type (${esc(mime||'unknown')}) can't be displayed in the browser. Showing the first ${j.shown} of ${j.size.toLocaleString()} decrypted bytes:</p><pre class="pv-text">${esc(j.hex)}</pre>`;
+      body.className='dv-body';
+      body.innerHTML=`<p class="muted" style="margin:0 0 8px">This file type (${esc(mime||'unknown')}) can't be displayed in the browser. Showing the first ${j.shown} of ${j.size.toLocaleString()} decrypted bytes:</p><pre class="dv-text">${esc(j.hex)}</pre>`;
     }
-  }catch(e){body.className='pv-body err';body.textContent=e.message}
+  }catch(e){body.className='dv-body err';body.textContent=e.message}
 }
 async function doDecrypt(id,btn){
   btn.disabled=true;btn.textContent='Working…';
