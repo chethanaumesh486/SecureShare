@@ -758,6 +758,7 @@ def decrypt_file(fid):
 
 
 PREVIEW = {"image/png", "image/jpeg", "image/gif", "image/webp", "application/pdf"}
+TEXTLIKE = {"application/json", "application/xml", "application/javascript", "application/x-yaml", "application/csv"}
 
 
 @app.get("/api/files/<int:fid>/decrypted")
@@ -772,6 +773,21 @@ def get_decrypted(fid):
     path = DIRS["decrypted"] / r["decrypted_name"]
     inline = request.args.get("inline") == "1"
     mime = r["mime"]
+    if request.args.get("hex") == "1":
+        # Fallback viewer for types a browser cannot show (zip, docx, ...): first bytes as a hex dump.
+        raw = path.read_bytes()
+        head = raw[:512]
+        lines = []
+        for i in range(0, len(head), 16):
+            chunk = head[i:i + 16]
+            lines.append(f"{i:08x}  {chunk.hex(' '):<47}  " + "".join(chr(b) if 32 <= b < 127 else "." for b in chunk))
+        resp = jsonify(size=len(raw), hex="\n".join(lines), shown=len(head))
+        return resp
+    if inline and (mime in PREVIEW or mime in TEXTLIKE):
+        if mime in TEXTLIKE:
+            resp = send_file(path, mimetype="text/plain; charset=utf-8")
+            resp.headers["Content-Security-Policy"] = "sandbox"
+            return resp
     if inline and mime in PREVIEW:
         resp = send_file(path, mimetype=mime)
     elif inline and mime.startswith("text/"):
