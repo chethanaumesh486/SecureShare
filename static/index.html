@@ -455,16 +455,19 @@ function mountReceiver(){
   $('#main').innerHTML=`
   <div class="cols wide">
     <section class="card"><div class="hd"><h2>Inbox</h2><span class="count" id="cnt">0</span></div><div id="list"></div></section>
-    <section class="card sticky"><div class="hd"><h2>Verification</h2></div><div id="steps">${empty('Steps appear here when you open a file.')}</div><div id="viewer"></div></section>
+    <section class="card sticky"><div class="hd"><h2>Verification</h2></div><div id="steps">${empty('Steps appear here when you open a file.')}</div></section>
   </div>
+  <section class="card" id="viewerCard" hidden><div class="hd"><h2>Decrypted file</h2><button class="sm" id="closeViewer" type="button">Close</button></div><div id="viewer"></div></section>
   <section class="card"><div class="hd"><h2>Activity</h2></div><div class="feed" id="feed"></div></section>`;
 }
 /* Show the decrypted content to the receiver (only the receiver can fetch it; the server enforces this). */
 async function showPlain(id){
   const v=$('#viewer');if(!v)return;
   const f=files.find(x=>x.id===id);if(!f)return;
+  const card=$('#viewerCard');card.hidden=false;
+  setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),50);
   const mime=f.mime||'',url=tq('/api/files/'+id+'/decrypted?inline=1');
-  const head=`<div class="pv-hd"><h3>Decrypted content</h3><span class="badge good">${esc(f.name)}</span></div>`;
+  const head=`<div class="pv-hd"><span class="badge good">${esc(f.name)}</span></div>`;
   const TEXT=mime.startsWith('text/')||['application/json','application/xml','application/javascript','application/x-yaml','application/csv'].includes(mime);
   v.innerHTML=`<div class="pv">${head}<div class="pv-body muted">Loading…</div></div>`;
   const body=v.querySelector('.pv-body');
@@ -492,8 +495,7 @@ async function doDecrypt(id,btn){
     const r=await api('/api/files/'+id+'/decrypt',{method:'POST'});
     $('#steps').innerHTML=stepsHTML(r.steps)+(r.ok?'':`<p class="err" style="margin:14px 0 0">${esc(r.error)}</p>`);
     toast(r.ok?'File decrypted and saved':r.error,r.ok?'good':'bad');flashId=id;collapsed.delete(id);
-    if(r.ok){await loadFiles();showPlain(id);return}
-    $('#viewer').innerHTML='';
+    const vc=$('#viewerCard');if(vc){vc.hidden=true;$('#viewer').innerHTML=''}
   }catch(e){toast(e.message,'bad')}
   loadFiles();
 }
@@ -593,6 +595,7 @@ function fileRow0(f){
     </div></div></div></div>`;
 }
 document.addEventListener('click',e=>{
+  if(e.target.closest('#closeViewer')){$('#viewerCard').hidden=true;$('#viewer').innerHTML='';return}
   const b=e.target.closest('button[data-act]');if(!b)return;
   const id=+b.dataset.id,a=b.dataset.act;
   if(a==='pkg')togglePkg(id);else if(a==='decrypt')doDecrypt(id,b);else if(a==='verify')doVerify(id);else if(a==='plain')tryPlain(id);else if(a==='view')showPlain(id);else if(a==='tamper')doTamper(id);
