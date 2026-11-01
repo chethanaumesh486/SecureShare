@@ -147,6 +147,12 @@ ol.stepper{list-style:none;margin:0;padding:0}
 .act{display:flex;gap:8px;flex-wrap:wrap}
 .under{margin:12px 0 0 60px;display:grid;gap:10px}
 @media(max-width:700px){.under{margin-left:0}}
+.pv{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.pv-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.pv-hd h3{margin:0;font-size:15px}
+.pv-img{max-width:100%;max-height:480px;display:block;border-radius:10px;border:1px solid var(--line)}
+.pv-pdf{width:100%;height:520px;border:1px solid var(--line);border-radius:10px}
+.pv-text{margin:0;max-height:420px;overflow:auto;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
 .paths{font:12px/1.65 var(--mono);color:var(--muted);overflow-wrap:anywhere}
 .paths b{font-family:var(--sans);color:var(--ink);font-weight:500}
 .pv{max-width:100%;max-height:380px;border-radius:12px;border:1px solid var(--line);justify-self:start}
@@ -449,9 +455,35 @@ function mountReceiver(){
   $('#main').innerHTML=`
   <div class="cols wide">
     <section class="card"><div class="hd"><h2>Inbox</h2><span class="count" id="cnt">0</span></div><div id="list"></div></section>
-    <section class="card sticky"><div class="hd"><h2>Verification</h2></div><div id="steps">${empty('Steps appear here when you open a file.')}</div></section>
+    <section class="card sticky"><div class="hd"><h2>Verification</h2></div><div id="steps">${empty('Steps appear here when you open a file.')}</div><div id="viewer"></div></section>
   </div>
   <section class="card"><div class="hd"><h2>Activity</h2></div><div class="feed" id="feed"></div></section>`;
+}
+/* Show the decrypted content to the receiver (only the receiver can fetch it; the server enforces this). */
+async function showPlain(id){
+  const v=$('#viewer');if(!v)return;
+  const f=files.find(x=>x.id===id);if(!f)return;
+  const mime=f.mime||'',url=tq('/api/files/'+id+'/decrypted?inline=1');
+  const head=`<div class="pv-hd"><h3>Decrypted content</h3><span class="badge good">${esc(f.name)}</span></div>`;
+  const TEXT=mime.startsWith('text/')||['application/json','application/xml','application/javascript','application/x-yaml','application/csv'].includes(mime);
+  v.innerHTML=`<div class="pv">${head}<div class="pv-body muted">Loading…</div></div>`;
+  const body=v.querySelector('.pv-body');
+  try{
+    if(mime.startsWith('image/')){
+      body.className='pv-body';body.innerHTML=`<img class="pv-img" src="${url}" alt="${esc(f.name)}">`;
+    }else if(mime==='application/pdf'){
+      body.className='pv-body';body.innerHTML=`<iframe class="pv-pdf" src="${url}" title="${esc(f.name)}"></iframe>`;
+    }else if(TEXT){
+      const r=await fetch(url,{credentials:'same-origin',headers:{'X-Tab':TAB}});
+      if(!r.ok)throw new Error('Could not load the decrypted file');
+      const t=await r.text();
+      body.className='pv-body';body.innerHTML=`<pre class="pv-text">${esc(t.length>200000?t.slice(0,200000)+'\n… (truncated)':t)}</pre>`;
+    }else{
+      const j=await api('/api/files/'+id+'/decrypted?hex=1');
+      body.className='pv-body';
+      body.innerHTML=`<p class="muted" style="margin:0 0 8px">This file type (${esc(mime||'unknown')}) can't be displayed in the browser. Showing the first ${j.shown} of ${j.size.toLocaleString()} decrypted bytes:</p><pre class="pv-text">${esc(j.hex)}</pre>`;
+    }
+  }catch(e){body.className='pv-body err';body.textContent=e.message}
 }
 async function doDecrypt(id,btn){
   btn.disabled=true;btn.textContent='Working…';
@@ -460,6 +492,8 @@ async function doDecrypt(id,btn){
     const r=await api('/api/files/'+id+'/decrypt',{method:'POST'});
     $('#steps').innerHTML=stepsHTML(r.steps)+(r.ok?'':`<p class="err" style="margin:14px 0 0">${esc(r.error)}</p>`);
     toast(r.ok?'File decrypted and saved':r.error,r.ok?'good':'bad');flashId=id;collapsed.delete(id);
+    if(r.ok){await loadFiles();showPlain(id);return}
+    $('#viewer').innerHTML='';
   }catch(e){toast(e.message,'bad')}
   loadFiles();
 }
@@ -535,7 +569,7 @@ function fileRow0(f){
     const done=f.status==='decrypted';
     let acts='',under='';
     if(done){
-      acts=`<button class="sm" data-act="verify" data-id="${f.id}">Verify signature</button>`;
+      acts=`<button class="sm" data-act="view" data-id="${f.id}">View file</button><button class="sm" data-act="verify" data-id="${f.id}">Verify signature</button>`;
       const match=f.recovered_sha256===f.plain_sha256;
       under=`<div class="under"><div class="paths"><b>Saved:</b> ${esc(f.decrypted_path)} <span class="badge ${match?'good':'bad'}">${match?'Matches sender original':'Does not match'}</span></div></div>`;
     }else if(f.status==='rejected'){
@@ -561,7 +595,7 @@ function fileRow0(f){
 document.addEventListener('click',e=>{
   const b=e.target.closest('button[data-act]');if(!b)return;
   const id=+b.dataset.id,a=b.dataset.act;
-  if(a==='pkg')togglePkg(id);else if(a==='decrypt')doDecrypt(id,b);else if(a==='verify')doVerify(id);else if(a==='plain')tryPlain(id);else if(a==='tamper')doTamper(id);
+  if(a==='pkg')togglePkg(id);else if(a==='decrypt')doDecrypt(id,b);else if(a==='verify')doVerify(id);else if(a==='plain')tryPlain(id);else if(a==='view')showPlain(id);else if(a==='tamper')doTamper(id);
 });
 
 document.addEventListener('click',e=>{
